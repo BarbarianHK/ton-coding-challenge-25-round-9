@@ -1,0 +1,35 @@
+#include "imports/stdlib.fc";
+
+const MY_WORKCHAIN = BASECHAIN;
+const op::inc = "inc"c; ;; 7f56a39b
+const op::dec = "dec"c; ;; a94df219
+
+int counter;
+
+() route_internal(slice ctx::sender, int ctx::value, int ctx::fwd_fee, slice ctx::body) impure inline {
+    (int op, int query_id) = ctx::body~load_op_and_query_id();
+
+    if op == op::inc {
+        counter += 1;
+        return ();
+    }
+
+    if op == op::dec {
+        counter -= 1;
+        return ();
+    }
+
+    throw(0xffff);
+}
+
+() main(int ctx::value, cell in_msg_full, slice ctx::body) impure {
+    slice s = in_msg_full.begin_parse();
+    int flags = s~load_msg_flags();
+
+    if (is_bounced(flags)) {
+        return ();
+    }
+
+    (slice ctx::sender, int ctx::fwd_fee) = s~retrieve_ctx(MY_WORKCHAIN);
+    route_internal(ctx::sender, ctx::value, ctx::fwd_fee, ctx::body);
+}
